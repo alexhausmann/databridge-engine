@@ -1,0 +1,69 @@
+  			
+  			// -----------------------------------------------------------
+            // Rename fields based on Framework XLS
+  			// -----------------------------------------------------------
+   trace ------------------------------------------------------;
+  Trace Rename Process $(vTableSave);
+   trace ------------------------------------------------------  ;  
+
+
+
+            TempRenameFieldList:
+            LOAD
+                QVTableName,
+                "Fields",
+                Rename
+            FROM $(vG.ImportPath)$(vContainer)-Qlik-Framework.xlsx
+            (ooxml, embedded labels, table is MetaDataRepository);
+			
+            
+            RenameFieldList_$(vTableSave):
+            Mapping Load 
+            	"Fields"			as OldName,
+            	 Rename				as NewName
+            resident TempRenameFieldList
+            where len(Rename)>0 and
+            QVTableName = '$(vTableSave)'
+            ;
+            drop Table TempRenameFieldList;
+            			
+           
+
+              
+               TRACE Rename fields for table $(vTableSave); 
+               Rename Fields using RenameFieldList_$(vTableSave);
+               ; 
+
+            
+            
+            
+  			trace -----------------------------------------------------------;
+            trace Saving $(vTableSave) cleaned QVD to 10.RenameField in Transformatino Folder ;
+  			trace -----------------------------------------------------------;
+   
+            Comment Table $(vTableSave) with 'Transform,RenameField,Level1,$(vContainer),10.RenameField';
+			Store $(vTableSave) INTO $(vG.TransformPath)10.RenameField\$(vTableSave).qvd(qvd);
+            
+            
+            
+//             Call IndexAdd('$(vG.TransformPath)05.RenameField\$(vTableSave).qvd');
+            
+            //*************** Stats **************************      	
+            Let vNowEnd			 = time(now(),'hh:mm:ss');	
+
+             Concatenate(Stats)
+             LOAD 
+            '$(vETLProcess)'							as ETLProcess,
+            '$(vETLRunId)'								as ETLRunId,
+            ''											as ETLStart,
+            ''											as ETLEnd,
+            '05.RenameField'							as ETLSection,
+            '$(vTableSave)'								as Step,
+            '$(vToday)'									as Date,
+            '$(vNowStart)'								as Start,
+            '$(vNowEnd)'								as End,
+            round(('$(vNowEnd)'-'$(vNowStart)')*86400)	as Duration,
+            ''											as ETLDuration
+            AutoGenerate 1;
+
+            //*************************************************
